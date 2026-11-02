@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Class Record</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: course list on the left, the selected course on the right with tabs (Class record, ILO attainment, Summary, Course setup). */
+:root{
+  --bg:#f4f3f3; --surface:#ffffff; --ink:#231f20; --muted:#625b5c; --line:#dcd7d7;
+  --accent:#c8102e; --accent-soft:#fbe7ea;
+  --pass:#1d7a4a; --pass-bg:#e3f3ea; --warn:#a15c00; --warn-bg:#fdf0dc;
+  --fail:#9b1c1c; --fail-bg:#f8e1e1; --inc:#575051; --inc-bg:#ebe8e8;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#161314; --surface:#211d1e; --ink:#f1eded; --muted:#a89fa0; --line:#3a3334;
+  --accent:#ff5a6e; --accent-soft:#3a1a20;
+  --pass:#6ccf95; --pass-bg:#15301f; --warn:#f0b35a; --warn-bg:#352612;
+  --fail:#f28b82; --fail-bg:#3a1a18; --inc:#c2b9ba; --inc-bg:#2c2627; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161314; --surface:#211d1e; --ink:#f1eded; --muted:#a89fa0; --line:#3a3334;
+  --accent:#ff5a6e; --accent-soft:#3a1a20;
+  --pass:#6ccf95; --pass-bg:#15301f; --warn:#f0b35a; --warn-bg:#352612;
+  --fail:#f28b82; --fail-bg:#3a1a18; --inc:#c2b9ba; --inc-bg:#2c2627; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;margin:0}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+textarea{resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-weight:500;cursor:pointer;border-radius:6px;padding:7px 13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button.primary:hover{opacity:.9;color:var(--surface)}
+button.armed{background:var(--fail);border-color:var(--fail);color:var(--surface)}
+button.link{border:none;background:none;padding:0;color:var(--accent);font-weight:600}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding-block:32px}
+.login .card{max-width:420px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:32px 28px;display:flex;flex-direction:column;gap:14px;text-align:center}
+.login h1{color:var(--accent);font-weight:800;font-size:34px}
+.login p{margin:0;color:var(--muted)}
+.login .fine{font-size:12.5px}
+.login .err{color:var(--fail);background:var(--fail-bg);padding:8px 10px;border-radius:6px}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:10px;padding:11px 16px;font-size:15px}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--display);font-weight:800;font-size:20px;color:var(--accent);margin-right:auto}
+.save{font-size:12.5px;color:var(--muted)}
+.save.err{color:var(--fail);font-weight:600}
+.who{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.demo{background:var(--warn-bg);color:var(--warn);font-size:13px;padding-block:8px}
+
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;padding-block:20px 60px;max-width:1500px;margin:0 auto}
+.side{display:flex;flex-direction:column;gap:10px;position:sticky;top:16px;align-self:start}
+.side-h{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.clist{display:flex;flex-direction:column;gap:6px}
+.citem{display:flex;flex-direction:column;align-items:flex-start;gap:0;text-align:left;white-space:normal;padding:9px 12px}
+.citem b{font-size:14.5px}
+.citem span{font-size:12.5px;color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.citem.on{border-color:var(--accent);background:var(--accent-soft)}
+.citem.on b{color:var(--accent)}
+.csel{display:none}
+.main{min-width:0;display:flex;flex-direction:column;gap:16px}
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;flex-direction:row;flex-wrap:wrap;align-items:center}
+  .side-h,.clist{display:none}
+  .csel{display:block;flex:1 1 200px;min-width:0}
+}
+
+.chead h1{font-size:clamp(24px,3.4vw,32px);font-weight:800}
+.chead p{margin:2px 0 0;color:var(--muted);max-width:75ch}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;padding:9px 12px;color:var(--muted)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab:hover{color:var(--accent)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-size:18px;font-weight:600}
+.card .hint{font-size:13px;color:var(--muted);margin:0}
+.row2{display:grid;grid-template-columns:180px minmax(0,1fr);gap:12px}
+@media (max-width:640px){.row2{grid-template-columns:minmax(0,1fr)}}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+label.f input,label.f textarea,label.f select{text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--ink)}
+.inline{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.inline label.f{width:170px}
+
+.secbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.secbar .lbl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
+.schip{border-radius:999px;padding:5px 13px}
+.schip small{color:var(--muted);font-family:var(--mono);margin-left:4px}
+.schip.on{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.schip.on small{color:var(--surface);opacity:.8}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools .grow{flex:1}
+.warnbox{font-size:13.5px;padding:10px 12px;border-radius:8px;background:var(--warn-bg);color:var(--warn)}
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;display:flex;flex-direction:column;gap:10px;align-items:center}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-width:100%}
+table{border-collapse:separate;border-spacing:0;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+th{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface);position:sticky;top:0;z-index:2}
+tbody tr:last-child td{border-bottom:none}
+td.l,th.l{text-align:left}
+.rec td{white-space:nowrap}
+.rec .sticky{position:sticky;background:var(--surface);z-index:1}
+.rec th.sticky{z-index:3}
+.rec .c0{left:0;width:40px;min-width:40px;color:var(--muted);font-family:var(--mono)}
+.rec .c1{left:40px;width:112px;min-width:112px}
+.rec .c2{left:152px;width:230px;min-width:230px;border-right:1px solid var(--line)}
+.rec td input{padding:5px 6px}
+.rec input.sr{font-family:var(--mono);font-size:13px}
+.rec input.sc{width:58px;text-align:center;font-family:var(--mono)}
+.rec input.sc.bad{border-color:var(--fail);background:var(--fail-bg)}
+.rec input.sc.blank{border-style:dashed}
+.rec th.tk{min-width:84px;text-transform:none;letter-spacing:0}
+.tk .tn{font-size:12.5px;color:var(--ink);font-weight:600;white-space:normal;line-height:1.25}
+.tk .tm{font-size:11px;color:var(--muted);font-family:var(--mono);font-weight:500;white-space:nowrap}
+.given{font-size:10.5px;padding:1px 8px;border-radius:999px;margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+.given.on{background:var(--pass-bg);color:var(--pass);border-color:var(--pass)}
+.rec td.o{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px}
+.rec th.ob,.rec td.ob{border-left:1px solid var(--line)}
+@media (max-width:640px){.rec .c0{width:32px;min-width:32px}.rec .c1{position:static;width:100px;min-width:100px}.rec .c2{left:32px;width:150px;min-width:150px}}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:600;font-size:12.5px;white-space:nowrap}
+.st-pass{color:var(--pass);background:var(--pass-bg)}
+.st-rem{color:var(--warn);background:var(--warn-bg)}
+.st-fail{color:var(--fail);background:var(--fail-bg)}
+.st-inc{color:var(--inc);background:var(--inc-bg)}
+.rm{padding:4px 8px;border:none;background:none;color:var(--muted);font-size:17px;line-height:1}
+.rm:hover{color:var(--fail)}
+.rm.armed{color:var(--surface);background:var(--fail);font-size:12px;border-radius:5px}
+.setup td input,.setup td select{padding:6px 8px}
+.setup td.w{width:92px}.setup td.w input{text-align:center;font-family:var(--mono)}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.wsum{font-family:var(--mono);font-size:13.5px}
+.wsum.off{color:var(--fail);font-weight:600}
+
+/* ILO + summary */
+.att{font-family:var(--mono);font-size:13px}
+.ok{color:var(--pass);font-weight:600}
+.no{color:var(--fail);font-weight:600}
+.cell-ok{background:var(--pass-bg)}
+.cell-no{background:var(--fail-bg)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile b{display:block;font-family:var(--display);font-weight:800;font-size:30px;line-height:1.1}
+.tile span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.dist{display:flex;flex-direction:column;gap:6px}
+.dr{display:grid;grid-template-columns:52px minmax(0,1fr) 40px;gap:10px;align-items:center;font-family:var(--mono);font-size:13px}
+.dr .track{height:14px;background:var(--bg);border-radius:4px;overflow:hidden}
+.dr .fill{height:100%;background:var(--accent);border-radius:4px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
+.plist{margin:0;padding-left:18px;font-size:13.5px}
+.plist li{margin:2px 0}
+.sm{font-size:12.5px;color:var(--muted)}
+/* phase 1: alerts, student panel, checks, insights */
+.alcell{background:none;border:none;padding:2px 0;cursor:pointer;display:flex;flex-wrap:wrap;gap:4px;min-width:130px;max-width:220px;white-space:normal}
+.alcell .pill{font-size:11px;padding:1px 8px}
+.alcell:hover{color:inherit}
+.alcell .none{font-size:12px;color:var(--muted)}
+.nobtn{background:none;border:none;padding:2px 4px;font-family:var(--mono);color:var(--accent);text-decoration:underline dotted;text-underline-offset:3px}
+.checks{background:var(--warn-bg);color:var(--ink);border-radius:8px;padding:10px 14px;font-size:13.5px}
+.checks summary{cursor:pointer;font-weight:600;color:var(--warn)}
+.checks ul{margin:8px 0 2px;padding-left:18px}
+.checks li{margin:2px 0}
+.panel{border-color:var(--accent);border-width:2px}
+.panel .ph{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.panel .ph h2{margin-right:auto}
+.kv{display:flex;flex-wrap:wrap;gap:8px 22px}
+.kv div{display:flex;flex-direction:column}
+.kv span{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kv b{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+.alist{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.alist li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.tgts{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.tgts li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:6px;background:var(--bg);font-size:13px}
+.tgts li b{font-family:var(--mono)}
+.flag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;margin:1px 2px;white-space:nowrap}
+.cqi{border-left:4px solid var(--fail);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:6px}
+.cqi h3{margin:0;font-size:15px}
+.cqi ul{margin:0;padding-left:18px;font-size:13.5px}
+.cqi li{margin:3px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:13.5px;z-index:20}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ================= SETTINGS ================= */
+/* 1. Paste your Firebase web app config here (Firebase console > Project settings > Your apps). */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCoaHBFkWsEPrSKghYdFqzSSAoPxiosQ7Q",
+  authDomain: "batstateu-class-record.firebaseapp.com",
+  projectId: "batstateu-class-record",
+  storageBucket: "batstateu-class-record.firebasestorage.app",
+  messagingSenderId: "120373507981",
+  appId: "1:120373507981:web:47be3f19b93ba35d716fc4"
+};
+/* 2. Email domains allowed to sign in. */
+const ALLOWED_DOMAINS = ["g.batstate-u.edu.ph", "batstate-u.edu.ph"];
+/* ============================================ */
+
+const SCALE=[[98,"1.00"],[94,"1.25"],[90,"1.50"],[88,"1.75"],[85,"2.00"],[83,"2.25"],[80,"2.50"],[78,"2.75"],[75,"3.00"],[70,"REM"],[0,"5.00"]];
+const DEMO=FIREBASE_CONFIG.apiKey.startsWith("PASTE")||typeof firebase==="undefined";
+const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const esc=s=>String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const num=v=>{if(v===null||v===undefined)return null;v=String(v).replace(/[\s​-‍﻿]/g,"");if(v==="")return null;const n=Number(v);return Number.isFinite(n)?n:NaN};
+const fmt=(n,d=2)=>Number(n).toFixed(d);
+const pc=n=>+Number(n).toFixed(2);
+const equiv=p=>SCALE.find(([lo])=>p>=lo)[1];
+const statusOf=p=>p>=75?["Passed","st-pass"]:p>=70?["REM","st-rem"]:["Failed","st-fail"];
+const $=s=>document.querySelector(s);
+const app=$("#app");
+
+let user=null,courses=[],store=null;
+let view={courseId:null,tab:"record",sectionId:null};
+try{Object.assign(view,JSON.parse(localStorage.getItem("classrecord.view"))||{})}catch(e){}
+const saveView=()=>{try{localStorage.setItem("classrecord.view",JSON.stringify(view))}catch(e){}};
+const cur=()=>courses.find(c=>c.id===view.courseId)||courses[0]||null;
+const curSection=c=>c?(c.sections.find(s=>s.id===view.sectionId)||c.sections[0]||null):null;
+
+/* ---------- sample + blank ---------- */
+function blankCourse(){return{id:uid(),code:"",desc:"",defPass:75,defTarget:70,
+  ilos:[{id:uid(),code:"ILO1",desc:"",pass:"",target:""}],tasks:[],sections:[{id:uid(),name:"Section 1",students:[]}]}}
+function sampleCourse(){
+  const I=[["ILO1","Design solutions to problems using IPO, algorithms, pseudocode and flowcharts"],["ILO2","Write C++ programs using selection and repetition structures"],["ILO3","Develop C++ programs using functions and arrays"],["ILO4","Present and document program design clearly"]].map(([code,desc])=>({id:uid(),code,desc,pass:"",target:""}));
+  const T=(name,i,weight,total,given)=>({id:uid(),name,iloId:I[i].id,weight,total,given});
+  const tasks=[T("Prelim",0,20,50,true),T("Midterm",1,20,50,true),T("Finals",2,20,50,false),T("Lab Act 1",0,5,20,true),T("Lab Act 1",3,5,20,false),T("Lab Act 2",1,10,50,false),T("Lab Act 3",2,10,50,false),T("Final Project",2,5,50,false),T("Final Project",3,5,50,false)];
+  const sc=[[40,30,20],[34,36,12],[7,32,18],[22,31,11],[2,0,""],[45,42,19]];
+  const students=sc.map((r,i)=>({id:uid(),sr:`00-0000${i+1}`,name:`SAMPLE, STUDENT ${String.fromCharCode(65+i)}.`,scores:{[tasks[0].id]:r[0],[tasks[1].id]:r[1],[tasks[3].id]:r[2]}}));
+  return{id:uid(),code:"CC101",desc:"Computer Programming (sample with fictional students)",defPass:75,defTarget:70,ilos:I,tasks,sections:[{id:uid(),name:"Sample Section",students}]};
+}
+
+/* ---------- storage ---------- */
+const LK="classrecord.demo.v1";
+const localStore={
+  async loadAll(){try{const d=JSON.parse(localStorage.getItem(LK));if(Array.isArray(d))return d}catch(e){}return null},
+  async save(){localStorage.setItem(LK,JSON.stringify(courses))},
+  async remove(){localStorage.setItem(LK,JSON.stringify(courses))}
+};
+function fireStore(u){
+  const col=firebase.firestore().collection("users").doc(u.uid).collection("courses");
+  return{
+    async loadAll(){const s=await col.get();return s.docs.map(d=>d.data())},
+    async save(c){c.updatedAt=Date.now();await col.doc(c.id).set(JSON.parse(JSON.stringify(c)))},
+    async remove(id){await col.doc(id).delete()}
+  };
+}
+const pending=new Set();let saveTimer;
+function setSave(t,err){const el=$("#save");if(el){el.textContent=t;el.classList.toggle("err",!!err)}}
+function dirty(c=cur()){if(!c)return;pending.add(c.id);setSave("Saving…");clearTimeout(saveTimer);saveTimer=setTimeout(flush,700)}
+async function flush(){
+  const ids=[...pending];pending.clear();
+  try{for(const id of ids){const c=courses.find(x=>x.id===id);if(c)await store.save(c)}setSave(DEMO?"Saved on this device":"All changes saved")}
+  catch(e){console.error(e);ids.forEach(i=>pending.add(i));setSave("Not saved. Check your connection.",true);clearTimeout(saveTimer);saveTimer=setTimeout(flush,5000)}
+}
+window.addEventListener("beforeunload",e=>{if(pending.size){e.preventDefault();e.returnValue=""}});
+window.addEventListener("pagehide",()=>{if(pending.size)flush()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&pending.size)flush()});
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200)}
+
+/* ---------- auth ---------- */
+const allowed=e=>!!e&&ALLOWED_DOMAINS.some(d=>e.toLowerCase().endsWith("@"+d));
+function renderLogin(msg){
+  app.innerHTML=`<div class="login pad"><div class="card">
+    <h1>Class Record</h1>
+    <p>Sign in with your BatStateU Google account to open your courses, sections and class records.</p>
+    <button class="primary gbtn" id="gbtn">Sign in with Google</button>
+    ${msg?`<p class="err">${esc(msg)}</p>`:""}
+    <p class="fine">Only ${ALLOWED_DOMAINS.map(d=>"@"+esc(d)).join(" and ")} accounts can sign in. Each teacher can see only their own records.</p>
+  </div></div>`;
+  $("#gbtn").onclick=signIn;
+}
+async function signIn(){
+  const p=new firebase.auth.GoogleAuthProvider();
+  p.setCustomParameters(ALLOWED_DOMAINS.length===1?{hd:ALLOWED_DOMAINS[0],prompt:"select_account"}:{prompt:"select_account"});
+  try{await firebase.auth().signInWithPopup(p)}
+  catch(e){
+    if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment","auth/cancelled-popup-request"].includes(e.code))return firebase.auth().signInWithRedirect(p);
+    if(e.code!=="auth/popup-closed-by-user")renderLogin("Sign-in failed: "+(e.message||e.code));
+  }
+}
+function boot(){
+  if(DEMO){
+    store=localStore;user={email:"Demo mode",demo:true};
+    localStore.loadAll().then(d=>{courses=d||[sampleCourse()];if(!d)localStore.save().catch(()=>{});start()});
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  firebase.auth().onAuthStateChanged(async u=>{
+    if(!u){user=null;renderLogin();return}
+    if(!allowed(u.email)){const e=u.email;await firebase.auth().signOut();renderLogin(`${e} is not a BatStateU account. Sign in with your BatStateU Google account.`);return}
+    user=u;store=fireStore(u);
+    app.innerHTML=`<div class="login pad"><div class="card"><h1>Class Record</h1><p>Loading your records…</p></div></div>`;
+    try{courses=await store.loadAll();start()}
+    catch(e){console.error(e);renderLogin("Could not load your records. Check your connection and the Firebase setup, then try again.")}
+  });
+}
+function start(){if(!courses.find(c=>c.id===view.courseId))view.courseId=courses[0]?.id||null;render()}
+
+/* ---------- grade computation ---------- */
+function weightSum(c){return c.tasks.reduce((a,t)=>{const w=num(t.weight);return a+(w>0?w:0)},0)}
+const weightOk=c=>c.tasks.length>0&&Math.abs(weightSum(c)-100)<1e-6;
+function calc(c,st){
+  let acc=0,wMiss=0,bad=0;const miss=[],ilo={};
+  for(const t of c.tasks){
+    const w=num(t.weight),T=num(t.total);if(!(w>0)||!(T>0))continue;
+    let s=num(st.scores?.[t.id]);
+    if(s===null){if(t.given)s=0;else{miss.push(t);wMiss+=w;continue}}
+    if(Number.isNaN(s)||s<0||s>T){bad++;wMiss+=w;continue}
+    const tr=s/T*62.5+37.5;acc+=tr*w/100;
+    if(t.iloId){const a=ilo[t.iloId]||(ilo[t.iloId]={n:0,d:0});a.n+=tr*w;a.d+=w}
+  }
+  const complete=!miss.length&&!bad&&weightOk(c);
+  const final=complete?Math.floor(acc+1e-9):null;
+  const iloS={};for(const k in ilo)iloS[k]=ilo[k].n/ilo[k].d;
+  return{acc,miss,bad,complete,final,eq:final!==null?equiv(final):null,
+    status:bad?["Check","st-fail"]:complete?statusOf(final):["INC","st-inc"],
+    hi:Math.floor(acc+wMiss+1e-9),iloS};
+}
+const iloPass=(c,i)=>{const v=num(i.pass);return v===null||Number.isNaN(v)?(num(c.defPass)??75):v};
+const iloTarget=(c,i)=>{const v=num(i.target);return v===null||Number.isNaN(v)?(num(c.defTarget)??70):v};
+const iloCode=(c,id)=>c.ilos.find(i=>i.id===id)?.code||"—";
+const taskLabel=(c,t)=>`${t.name||"Task"}${c.tasks.filter(x=>x.name===t.name).length>1?` (${iloCode(c,t.iloId)})`:""}`;
+
+/* ---------- phase 1 rules ---------- */
+function trOf(t,st){const T=num(t.total),s=num(st.scores?.[t.id]);if(!(T>0)||s===null||Number.isNaN(s)||s<0||s>T)return null;return s/T*62.5+37.5}
+function targetsFor(c,r,goal){
+  if(r.complete||r.bad)return null;
+  const pend=r.miss.filter(t=>num(t.weight)>0&&num(t.total)>0);const R=pend.reduce((a,t)=>a+num(t.weight),0);if(R<=0)return null;
+  if(r.acc+0.375*R>=goal)return{secured:true,lo:Math.floor(r.acc+0.375*R+1e-9)};
+  if(r.acc+R<goal)return{unreachable:true};
+  const f=Math.max(0,((goal-r.acc)/R*100-37.5)/62.5);
+  return{f,list:pend.map(t=>({t,T:num(t.total),need:Math.min(num(t.total),Math.ceil(f*num(t.total)-1e-9))}))};
+}
+function alertsOf(c,st,r){
+  const a=[];
+  if(!r.complete&&!r.bad&&r.hi<75)a.push(["Cannot pass","st-fail",`Highest possible is ${r.hi}% (${equiv(r.hi)}) even with perfect scores on the remaining tasks.`]);
+  else{const tg=targetsFor(c,r,75);if(tg&&tg.f>=0.8)a.push(["Narrow path","st-rem",`Needs about ${Math.ceil(tg.f*100)}% of the points on every remaining task to pass.`])}
+  const seq=c.tasks.map(t=>({t,tr:trOf(t,st)})).filter(x=>x.tr!==null);let drop=null;
+  for(let i=0;i<seq.length;i++){const j=seq.findIndex((x,k)=>k>i&&num(x.t.weight)===num(seq[i].t.weight));if(j>0&&seq[i].tr-seq[j].tr>=15)drop=[seq[i],seq[j]]}
+  if(drop)a.push(["Dropping","st-rem",`${taskLabel(c,drop[0].t)} ${fmt(drop[0].tr)} → ${taskLabel(c,drop[1].t)} ${fmt(drop[1].tr)}.`]);
+  const mo=c.tasks.filter(t=>t.given&&num(st.scores?.[t.id])===null);
+  if(mo.length)a.push(["Missing output","st-inc",`No score for ${mo.map(t=>taskLabel(c,t)).join(", ")} (counted as 0).`]);
+  return a;
+}
+function taskStats(c,sec){
+  return c.tasks.map(t=>{
+    const T=num(t.total);const vals=[];let blanks=0,bad=0;
+    sec.students.forEach(st=>{const s=num(st.scores?.[t.id]);if(s===null){blanks++;if(t.given)vals.push(0);return}if(Number.isNaN(s)||s<0||!(T>0)||s>T){bad++;return}vals.push(s)});
+    if(!(T>0)||!vals.length)return{t,T,n:0,blanks,bad};
+    const trs=vals.map(v=>v/T*62.5+37.5),passN=trs.filter(x=>x>=75).length;
+    return{t,T,n:vals.length,blanks,bad,avg:vals.reduce((a,b)=>a+b,0)/vals.length,hi:Math.max(...vals),lo:Math.min(...vals),passN,passRate:passN/vals.length*100};
+  });
+}
+function dataChecks(c,sec){
+  const out=[];const T=Object.fromEntries(c.tasks.map(t=>[t.id,t]));
+  sec.students.forEach((st,i)=>{
+    const who=st.name||st.sr||`Row ${i+1}`;
+    for(const id in (st.scores||{})){const t=T[id];if(!t)continue;const s=num(st.scores[id]),tot=num(t.total);
+      if(s!==null&&(Number.isNaN(s)||s<0))out.push(`${who}: ${taskLabel(c,t)} score "${st.scores[id]}" is not a valid number.`);
+      else if(s!==null&&tot>0&&s>tot)out.push(`${who}: ${taskLabel(c,t)} score ${s} is higher than the total of ${tot}.`)}
+    if(!st.name.trim()||!st.sr.trim())out.push(`Row ${i+1}: ${!st.name.trim()&&!st.sr.trim()?"name and SR-Code are":!st.name.trim()?"name is":"SR-Code is"} missing.`);
+  });
+  const seen={};sec.students.forEach(st=>{const k=st.sr.trim().toLowerCase();if(k)(seen[k]=seen[k]||[]).push(st.name||"(no name)")});
+  Object.entries(seen).forEach(([k,v])=>{if(v.length>1)out.push(`SR-Code ${k.toUpperCase()} is used by ${v.length} students: ${v.join("; ")}`)});
+  const given=c.tasks.filter(t=>t.given);
+  if(given.length)sec.students.forEach(st=>{if(given.every(t=>num(st.scores?.[t.id])===null))out.push(`${st.name||st.sr||"A student"} has no scores on any given task.`)});
+  given.forEach(t=>{const b=sec.students.filter(st=>num(st.scores?.[t.id])===null).length;if(sec.students.length&&b/sec.students.length>=0.3)out.push(`${taskLabel(c,t)} is marked Given but ${b} of ${sec.students.length} scores are blank. Were the scores encoded?`)});
+  return out;
+}
+let openStudent=null;
+
+/* ---------- shell ---------- */
+function render(){
+  const c=cur();
+  app.innerHTML=`
+  <header class="bar pad"><div class="brand">Class Record</div><span class="save" id="save">${DEMO?"Saved on this device":"All changes saved"}</span>
+    <span class="who">${esc(user.email)}</span>${user.demo?"":`<button id="signout">Sign out</button>`}</header>
+  ${DEMO?`<div class="demo pad">Demo mode: Firebase is not set up yet, so records are saved only in this browser. The sample students are fictional.</div>`:""}
+  <div class="layout pad">
+    <nav class="side" aria-label="Courses">
+      <div class="side-h">My courses</div>
+      <div class="clist">${courses.map(x=>`<button class="citem ${x.id===c?.id?"on":""}" data-cid="${x.id}"><b>${esc(x.code||"Untitled course")}</b><span>${esc(x.desc)}</span></button>`).join("")}</div>
+      <select class="csel" id="csel" aria-label="Course">${courses.map(x=>`<option value="${x.id}" ${x.id===c?.id?"selected":""}>${esc((x.code||"Untitled course")+(x.desc?" – "+x.desc:""))}</option>`).join("")}</select>
+      <button class="primary" id="addCourse">+ New course</button>
+    </nav>
+    <main class="main" id="main"></main>
+  </div>`;
+  app.querySelectorAll("[data-cid]").forEach(b=>b.onclick=()=>{view.courseId=b.dataset.cid;view.sectionId=null;saveView();render()});
+  $("#csel").onchange=e=>{view.courseId=e.target.value;view.sectionId=null;saveView();render()};
+  $("#addCourse").onclick=()=>{const n=blankCourse();courses.push(n);view.courseId=n.id;view.tab="setup";view.sectionId=null;saveView();dirty(n);render();$("#f-code")?.focus()};
+  if($("#signout"))$("#signout").onclick=async()=>{if(pending.size)await flush();firebase.auth().signOut()};
+  renderMain();
+}
+const TABS=[["record","Class record"],["ilo","ILO attainment"],["summary","Summary"],["insights","Insights"],["setup","Course setup"]];
+function renderMain(){
+  const c=cur(),m=$("#main");
+  if(!c){m.innerHTML=`<div class="empty"><h2>No courses yet</h2><p>Create your first course to set up its ILOs, assessment tasks and sections.</p><button class="primary" id="first">+ New course</button></div>`;$("#first").onclick=()=>$("#addCourse").click();return}
+  m.innerHTML=`<div class="chead"><h1 id="hcode">${esc(c.code||"Untitled course")}</h1><p id="hdesc">${esc(c.desc||"Add the course description in Course setup.")}</p></div>
+    <div class="tabs" role="tablist">${TABS.map(([k,l])=>`<button role="tab" aria-selected="${view.tab===k}" class="tab ${view.tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("")}</div>
+    <div id="tabc" style="display:flex;flex-direction:column;gap:14px"></div>`;
+  m.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{view.tab=b.dataset.tab;saveView();renderMain()});
+  ({record:renderRecord,ilo:renderILO,summary:renderSummary,insights:renderInsights,setup:renderSetup}[view.tab]||renderRecord)(c);
+}
+function sectionBar(c,sec){
+  return`<div class="secbar"><span class="lbl">Section</span>${c.sections.map(s=>`<button class="schip ${s.id===sec?.id?"on":""}" data-sid="${s.id}">${esc(s.name||"Untitled")}<small>${s.students.length}</small></button>`).join("")}<button class="schip" data-addsec>+ Section</button></div>`;
+}
+function bindSectionBar(c){
+  $("#tabc").querySelectorAll("[data-sid]").forEach(b=>b.onclick=()=>{view.sectionId=b.dataset.sid;saveView();renderMain()});
+  $("#tabc").querySelector("[data-addsec]").onclick=()=>{const s={id:uid(),name:`Section ${c.sections.length+1}`,students:[]};c.sections.push(s);view.sectionId=s.id;saveView();dirty(c);renderMain();toast("Section added. Rename it below the section list.")};
+}
+function arm(btn,fn,label="Tap again to confirm"){
+  if(btn.classList.contains("armed")){clearTimeout(btn._t);fn();return}
+  const old=btn.textContent;btn.classList.add("armed");btn.textContent=label;
+  btn._t=setTimeout(()=>{btn.classList.remove("armed");btn.textContent=old},3500);
+}
+
+/* ---------- class record ---------- */
+function renderRecord(c){
+  const sec=curSection(c),tc=$("#tabc");
+  if(!sec){tc.innerHTML=`<div class="empty"><p>This course has no sections yet.</p><button class="primary" id="ns">+ Add section</button></div>`;$("#ns").onclick=()=>{const s={id:uid(),name:"Section 1",students:[]};c.sections.push(s);view.sectionId=s.id;dirty(c);renderMain()};return}
+  const tasks=c.tasks,wOk=weightOk(c);
+  tc.innerHTML=`${sectionBar(c,sec)}
+    <div class="tools"><label class="f" style="width:240px">Section name<input id="secname" value="${esc(sec.name)}"></label><span class="grow"></span>
+      <button id="addSt">+ Add student</button><button id="pasteBtn">Paste student list</button><button id="sortBtn">Sort by name</button><button id="csvBtn">Export CSV</button></div>
+    <div class="card" id="pastePanel" hidden><h2>Paste student list</h2>
+      <p class="hint">Copy the SR-Code and Name columns from Excel or Google Sheets and paste them here, one student per line. A leading "No." column is ignored, and students already in this section are skipped.</p>
+      <textarea id="pasteTxt" rows="6" placeholder="26-05700&#9;ALCANTARA, ALLEA RICH D.&#10;26-06728&#9;ALDAY, VERA CHRISTINA A."></textarea>
+      <div class="tools"><button class="primary" id="pasteAdd">Add students</button><button id="pasteCancel">Cancel</button></div></div>
+    ${!tasks.length?`<div class="warnbox">This course has no assessment tasks yet. Add them in <button class="link" data-go="setup">Course setup</button>.</div>`:!wOk?`<div class="warnbox">Task weights add up to ${pc(weightSum(c))}%. Final grades appear only when they total 100%. Fix them in <button class="link" data-go="setup">Course setup</button>.</div>`:""}
+    <details class="checks" id="checks" hidden><summary id="checksSum"></summary><ul id="checksList"></ul></details>
+    <div id="panel"></div>
+    ${sec.students.length?`<div class="tw"><table class="rec"><thead><tr>
+      <th class="sticky c0">#</th><th class="sticky c1 l">SR-Code</th><th class="sticky c2 l">Name</th><th class="l">Alerts</th>
+      ${tasks.map(t=>`<th class="tk"><div class="tn">${esc(t.name||"Task")}</div><div class="tm">${esc(iloCode(c,t.iloId))} · ${esc(t.weight)}% · /${esc(t.total)}</div><button class="given ${t.given?"on":""}" data-given="${t.id}" title="Given: blank scores count as 0. Not yet: blank scores are left out.">${t.given?"Given":"Not yet"}</button></th>`).join("")}
+      <th class="ob">Accum.</th><th>Final</th><th>Equiv.</th><th>Status</th><th>Highest</th><th></th></tr></thead>
+      <tbody>${sec.students.map((st,i)=>`<tr data-st="${st.id}">
+        <td class="sticky c0"><button class="nobtn" data-open title="Open student details">${i+1}</button></td>
+        <td class="sticky c1"><input class="sr" data-f="sr" value="${esc(st.sr)}" aria-label="SR-Code"></td>
+        <td class="sticky c2"><input data-f="name" value="${esc(st.name)}" aria-label="Name"></td>
+        <td class="l"><button class="alcell" data-o="al" data-open title="Open student details"></button></td>
+        ${tasks.map((t,j)=>`<td><input class="sc" data-t="${t.id}" data-r="${i}" data-c="${j}" inputmode="decimal" value="${esc(st.scores?.[t.id]??"")}" aria-label="${esc(t.name)} score"></td>`).join("")}
+        <td class="o ob" data-o="acc"></td><td class="o" data-o="fin"></td><td class="o" data-o="eq"></td><td data-o="st"></td><td class="o" data-o="hi"></td>
+        <td><button class="rm" data-rm title="Remove student">×</button></td></tr>`).join("")}</tbody></table></div>
+      <p class="sm">Click a row number or its alerts to see that student's details and the scores needed to pass. Type scores directly. Press Enter to move down. You can paste a column or block of scores copied from Excel into any score cell. <b>Accum.</b> is the weighted total so far out of 100. <b>Highest</b> is the best final grade still possible with perfect scores on tasks not yet given.</p>`
+    :`<div class="empty"><p>No students in this section yet.</p><p class="sm">Use <b>+ Add student</b> or <b>Paste student list</b>.</p></div>`}`;
+  bindSectionBar(c);
+  tc.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{view.tab=b.dataset.go;saveView();renderMain()});
+  $("#secname").oninput=e=>{sec.name=e.target.value;dirty(c);const ch=tc.querySelector(`[data-sid="${sec.id}"]`);if(ch)ch.firstChild.textContent=sec.name||"Untitled"};
+  $("#addSt").onclick=()=>{sec.students.push({id:uid(),sr:"",name:"",scores:{}});dirty(c);renderMain();const rows=tc.querySelectorAll("tbody tr");rows[rows.length-1]?.querySelector("input.sr")?.focus()};
+  $("#pasteBtn").onclick=()=>{$("#pastePanel").hidden=false;$("#pasteTxt").focus()};
+  $("#pasteCancel").onclick=()=>{$("#pastePanel").hidden=true};
+  $("#pasteAdd").onclick=()=>{
+    const have=new Set(sec.students.map(s=>s.sr.trim().toLowerCase()).filter(Boolean));let added=0,skipped=0;
+    $("#pasteTxt").value.replace(/\r/g,"").split("\n").forEach(line=>{
+      if(!line.trim())return;
+      let parts=line.includes("\t")?line.split("\t").map(x=>x.trim()):(m=>m?[m[1],m[2]]:[line.trim()])(line.trim().match(/^(\S+)\s+(.+)$/));
+      if(parts.length>=3&&/^\d+$/.test(parts[0]))parts=parts.slice(1);
+      const [sr,name]=parts;if(!sr&&!name)return;
+      if(/^sr-?code$/i.test(sr||""))return;
+      if(sr&&have.has(sr.toLowerCase())){skipped++;return}
+      sec.students.push({id:uid(),sr:sr||"",name:name||"",scores:{}});if(sr)have.add(sr.toLowerCase());added++;
+    });
+    dirty(c);renderMain();toast(`${added} student${added===1?"":"s"} added${skipped?`, ${skipped} already in the list`:""}.`);
+  };
+  $("#sortBtn").onclick=()=>{sec.students.sort((a,b)=>a.name.localeCompare(b.name));dirty(c);renderMain();toast("Sorted by name.")};
+  $("#csvBtn").onclick=()=>exportCSV(c,sec);
+  tc.querySelectorAll("[data-given]").forEach(b=>b.onclick=()=>{const t=c.tasks.find(x=>x.id===b.dataset.given);t.given=!t.given;dirty(c);renderMain()});
+  tc.querySelectorAll("tbody tr").forEach(tr=>{
+    const st=sec.students.find(s=>s.id===tr.dataset.st);updateRow(c,tr,st);
+    tr.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{openStudent=st.id;renderPanel(c,sec);$("#panel").scrollIntoView({behavior:"smooth",block:"nearest"})});
+    tr.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=()=>{st[inp.dataset.f]=inp.value;dirty(c);updateChecks(c,sec);if(openStudent===st.id)renderPanel(c,sec)});
+    tr.querySelectorAll("input.sc").forEach(inp=>{
+      inp.oninput=()=>{st.scores=st.scores||{};st.scores[inp.dataset.t]=inp.value;dirty(c);updateRow(c,tr,st);updateChecks(c,sec);if(openStudent===st.id)renderPanel(c,sec)};
+      inp.onkeydown=e=>{if(e.key==="Enter"||(e.key==="ArrowDown")||(e.key==="ArrowUp")){e.preventDefault();const r=+inp.dataset.r+(e.key==="ArrowUp"||(e.key==="Enter"&&e.shiftKey)?-1:1);tc.querySelector(`input.sc[data-r="${r}"][data-c="${inp.dataset.c}"]`)?.focus()}};
+      inp.onpaste=e=>{
+        const txt=(e.clipboardData||window.clipboardData).getData("text");if(!/[\t\n]/.test(txt.replace(/\s+$/,"")))return;
+        e.preventDefault();const r0=+inp.dataset.r,c0=+inp.dataset.c;let n=0;
+        txt.replace(/\r/g,"").replace(/\n+$/,"").split("\n").forEach((row,i)=>{const s2=sec.students[r0+i];if(!s2)return;s2.scores=s2.scores||{};row.split("\t").forEach((v,j)=>{const t=tasks[c0+j];if(t){s2.scores[t.id]=v.trim();n++}})});
+        dirty(c);renderMain();toast(`${n} score${n===1?"":"s"} pasted.`);
+      };
+    });
+    const rm=tr.querySelector("[data-rm]");rm.onclick=()=>arm(rm,()=>{sec.students=sec.students.filter(s=>s.id!==st.id);dirty(c);renderMain()},"Remove");
+  });
+  updateChecks(c,sec);renderPanel(c,sec);
+}
+function updateChecks(c,sec){
+  const el=$("#checks");if(!el)return;const list=dataChecks(c,sec);
+  el.hidden=!list.length;if(!list.length)return;
+  $("#checksSum").textContent=`${list.length} data check${list.length===1?"":"s"} to review`;
+  $("#checksList").innerHTML=list.slice(0,30).map(x=>`<li>${esc(x)}</li>`).join("")+(list.length>30?`<li>…and ${list.length-30} more</li>`:"");
+}
+function renderPanel(c,sec){
+  const el=$("#panel");if(!el)return;const st=sec.students.find(s=>s.id===openStudent);
+  if(!st){el.innerHTML="";return}
+  const r=calc(c,st),al=alertsOf(c,st,r),tg=targetsFor(c,r,75);
+  let need;
+  if(r.bad)need=`<p class="hint">Fix the invalid scores first.</p>`;
+  else if(r.complete)need=`<p class="hint">All scores are complete. Final grade: <b>${r.final}% (${r.eq})</b>.</p>`;
+  else if(!tg)need=`<p class="hint">No remaining tasks to compute targets from.</p>`;
+  else if(tg.secured)need=`<p class="hint"><b class="ok">Will pass even with 0 on the remaining tasks.</b> Lowest possible grade: ${tg.lo}% (${equiv(tg.lo)}).</p>`;
+  else if(tg.unreachable)need=`<p class="hint"><b class="no">Cannot reach 75 anymore.</b> Highest possible: ${r.hi}% (${equiv(r.hi)}).</p>`;
+  else need=`<p class="hint">To pass (75%), about <b>${Math.ceil(tg.f*100)}% of the points</b> on each remaining task:</p><ul class="tgts">${tg.list.map(x=>`<li><span>${esc(taskLabel(c,x.t))}</span><b>${x.need} / ${x.T}</b></li>`).join("")}</ul>`;
+  el.innerHTML=`<div class="card panel"><div class="ph"><h2>${esc(st.name||"(no name)")} <span class="sm num">${esc(st.sr)}</span></h2><span class="pill ${r.status[1]}">${r.status[0]}</span><button id="pclose">Close</button></div>
+    <div class="kv"><div><span>Accumulated</span><b>${fmt(r.acc)}</b></div><div><span>Final</span><b>${r.final!==null?`${r.final}% · ${r.eq}`:"–"}</b></div><div><span>Highest possible</span><b>${r.complete?"–":`${r.hi}% · ${equiv(r.hi)}`}</b></div>
+      ${c.ilos.map(i=>`<div><span>${esc(i.code)}</span><b>${r.iloS[i.id]!==undefined?fmt(r.iloS[i.id]):"–"}</b></div>`).join("")}</div>
+    ${al.length?`<ul class="alist">${al.map(([l,cls,d])=>`<li><span class="pill ${cls}">${l}</span><span>${esc(d)}</span></li>`).join("")}</ul>`:`<p class="hint">No alerts for this student.</p>`}
+    <div><h2 style="font-size:15px">Needed to pass</h2>${need}</div></div>`;
+  $("#pclose").onclick=()=>{openStudent=null;el.innerHTML=""};
+}
+function updateRow(c,tr,st){
+  const r=calc(c,st);
+  const alc=tr.querySelector('[data-o="al"]');if(alc){const al=alertsOf(c,st,r);alc.innerHTML=al.length?al.map(([l,cls,d])=>`<span class="pill ${cls}" title="${esc(d)}">${l}</span>`).join(""):`<span class="none">None</span>`}
+  tr.querySelectorAll("input.sc").forEach(inp=>{const t=c.tasks.find(x=>x.id===inp.dataset.t);const s=num(inp.value),T=num(t.total);
+    inp.classList.toggle("bad",s!==null&&(Number.isNaN(s)||s<0||(T>0&&s>T)));inp.classList.toggle("blank",s===null&&!t.given)});
+  const o=k=>tr.querySelector(`[data-o="${k}"]`);
+  o("acc").textContent=fmt(r.acc);o("fin").textContent=r.final!==null?r.final:"–";o("eq").textContent=r.eq||"–";
+  o("st").innerHTML=`<span class="pill ${r.status[1]}">${r.status[0]}</span>`;
+  o("hi").textContent=r.complete?"–":r.hi;o("hi").title=r.complete?"":`${equiv(r.hi)} if perfect on the rest`;
+}
+function csvCell(v){v=String(v??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}
+function exportCSV(c,sec){
+  const head=["No.","SR-Code","Name",...c.tasks.map(t=>`${taskLabel(c,t)} [${iloCode(c,t.iloId)} ${t.weight}% /${t.total}]`),"Accumulated","Final %","Equivalent","Status","Highest possible",...c.ilos.map(i=>`${i.code} score`)];
+  const rows=sec.students.map((st,i)=>{const r=calc(c,st);return[i+1,st.sr,st.name,...c.tasks.map(t=>st.scores?.[t.id]??""),fmt(r.acc),r.final??"",r.eq??"",r.status[0],r.complete?"":r.hi,...c.ilos.map(il=>r.iloS[il.id]!==undefined?fmt(r.iloS[il.id]):"")]});
+  const csv="﻿"+[head,...rows].map(r=>r.map(csvCell).join(",")).join("\r\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download=`${(c.code||"course").replace(/[^\w-]+/g,"_")}_${(sec.name||"section").replace(/[^\w-]+/g,"_")}_class_record.csv`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+/* ---------- ILO attainment ---------- */
+function iloStats(c,sec){
+  const res=sec.students.map(st=>({st,r:calc(c,st)}));
+  const ilos=c.ilos.map(i=>{
+    const pass=iloPass(c,i),target=iloTarget(c,i);
+    const scored=res.filter(x=>x.r.iloS[i.id]!==undefined);
+    const att=scored.filter(x=>Math.floor(x.r.iloS[i.id]+1e-9)>=pass).length;
+    const pct=scored.length?att/scored.length*100:null;
+    const tasks=c.tasks.filter(t=>t.iloId===i.id);
+    return{i,pass,target,tasks,n:scored.length,att,pct,result:pct===null?"Pending":pct>=target?"Met":"Not met"};
+  });
+  return{res,ilos};
+}
+function renderILO(c){
+  const sec=curSection(c),tc=$("#tabc");
+  if(!sec){tc.innerHTML=`<div class="empty"><p>Add a section first.</p></div>`;return}
+  const {res,ilos}=iloStats(c,sec);
+  tc.innerHTML=`${sectionBar(c,sec)}
+  <div class="card"><h2>Class attainment · ${esc(sec.name)}</h2>
+    <p class="hint">A student attains an ILO when their weighted average on the tasks aligned to it reaches the passing level. The ILO is <b>Met</b> when the share of students who attained it reaches the target. Only tasks with scores (or marked Given) are counted. Change the levels in Course setup.</p>
+    <div class="tw"><table><thead><tr><th class="l">ILO</th><th class="l">Description</th><th class="l">Aligned tasks</th><th>Passing</th><th>Target</th><th>Attained</th><th>Result</th></tr></thead><tbody>
+    ${ilos.map(x=>`<tr><td class="l"><b>${esc(x.i.code)}</b></td><td class="l" style="min-width:220px;white-space:normal">${esc(x.i.desc)||'<span class="sm">No description</span>'}</td>
+      <td class="l sm" style="white-space:normal;min-width:160px">${x.tasks.map(t=>esc(t.name)+` (${esc(t.weight)}%)`).join(", ")||"None"}</td>
+      <td class="num">${x.pass}</td><td class="num">${x.target}%</td>
+      <td class="att">${x.n?`${x.att} / ${x.n} (${fmt(x.pct,1)}%)`:"–"}</td>
+      <td><span class="pill ${x.result==="Met"?"st-pass":x.result==="Not met"?"st-fail":"st-inc"}">${x.result}</span></td></tr>`).join("")}
+    </tbody></table></div></div>
+  ${cqiCard(c,sec,ilos)}
+  ${sec.students.length?`<div class="card"><h2>Per student</h2>
+    <div class="tw"><table class="rec"><thead><tr><th class="sticky c0">#</th><th class="sticky c1 l">SR-Code</th><th class="sticky c2 l">Name</th>${ilos.map(x=>`<th>${esc(x.i.code)}<div class="tm">pass ${x.pass}</div></th>`).join("")}</tr></thead><tbody>
+    ${res.map(({st,r},n)=>`<tr><td class="sticky c0">${n+1}</td><td class="sticky c1 l num">${esc(st.sr)}</td><td class="sticky c2 l">${esc(st.name)}</td>
+      ${ilos.map(x=>{const v=r.iloS[x.i.id];if(v===undefined)return`<td class="sm">–</td>`;const ok=Math.floor(v+1e-9)>=x.pass;return`<td class="att ${ok?"cell-ok":"cell-no"}">${fmt(v)} <span class="${ok?"ok":"no"}">${ok?"✓":"✗"}</span></td>`}).join("")}</tr>`).join("")}
+    </tbody></table></div></div>`:""}`;
+  bindSectionBar(c);
+}
+
+function cqiCard(c,sec,ilos){
+  const assessed=ilos.filter(x=>x.result!=="Pending");if(!assessed.length)return"";
+  const nm=ilos.filter(x=>x.result==="Not met");
+  if(!nm.length)return`<div class="card"><h2>CQI insights</h2><p class="hint"><b class="ok">All assessed ILOs met their targets.</b> Keep the current strategies and continue monitoring the ILOs that are still pending.</p></div>`;
+  const ts=taskStats(c,sec);
+  return`<div class="card"><h2>CQI insights</h2><p class="hint">Suggested starting points for ILOs that did not meet the target. Review them against what happened in class before using them in your report.</p>
+  ${nm.map(x=>{
+    const rows=ts.filter(s=>s.t.iloId===x.i.id&&s.n>0).sort((a,b)=>a.passRate-b.passRate);
+    const low=rows[0],high=rows[rows.length-1],gap=x.target-x.pct,notAtt=x.n-x.att;const acts=[];
+    if(low&&low.passRate<50)acts.push(`Hold a review or re-teach the topics assessed in <b>${esc(taskLabel(c,low.t))}</b>, where only ${low.passN} of ${low.n} students passed (${fmt(low.passRate,1)}%).`);
+    if(rows.length>1&&high.passRate-low.passRate>=20)acts.push(`Check whether <b>${esc(taskLabel(c,low.t))}</b> matches the difficulty of the other ${esc(x.i.code)} tasks. ${esc(taskLabel(c,high.t))} had ${fmt(high.passRate,1)}% passing.`);
+    const miss=rows.reduce((a,s)=>a+(s.t.given?s.blanks:0),0);if(miss)acts.push(`Follow up on ${miss} missing output${miss===1?"":"s"} counted as 0 in ${esc(x.i.code)} tasks.`);
+    acts.push(gap<=10?`The class is ${fmt(gap,1)} points below the ${x.target}% target. Targeted reinforcement for the ${notAtt} student${notAtt===1?"":"s"} who did not attain it may be enough.`:`The class is ${fmt(gap,1)} points below the ${x.target}% target. Add practice activities aligned to ${esc(x.i.code)} and revisit how it is taught.`);
+    return`<div class="cqi"><h3>${esc(x.i.code)} · ${x.att} of ${x.n} attained (${fmt(x.pct,1)}%), target ${x.target}%</h3>
+      ${rows.length?`<p class="sm" style="margin:0">Aligned tasks, lowest passing rate first: ${rows.map(s=>`${esc(taskLabel(c,s.t))} ${fmt(s.passRate,1)}%`).join(" · ")}</p>`:""}
+      <ul>${acts.map(a=>`<li>${a}</li>`).join("")}</ul></div>`}).join("")}</div>`;
+}
+
+/* ---------- insights ---------- */
+function renderInsights(c){
+  const sec=curSection(c),tc=$("#tabc");
+  if(!sec){tc.innerHTML=`<div class="empty"><p>Add a section first.</p></div>`;return}
+  const ts=taskStats(c,sec);
+  const res=sec.students.map(st=>{const r=calc(c,st);return{st,r,al:alertsOf(c,st,r)}});
+  const groups=["Cannot pass","Narrow path","Dropping","Missing output"].map(k=>[k,res.filter(x=>x.al.some(a=>a[0]===k)).map(x=>({x,d:x.al.find(a=>a[0]===k)}))]);
+  const checks=dataChecks(c,sec);
+  tc.innerHTML=`${sectionBar(c,sec)}
+  <div class="card"><h2>Task analysis</h2><p class="hint">Passing means at least 60% of the points (a transmuted grade of 75). Blank scores count only when the task is marked Given.</p>
+    <div class="tw"><table><thead><tr><th class="l">Task</th><th>ILO</th><th>Scored</th><th>Average</th><th>Highest</th><th>Lowest</th><th>Passing</th><th class="l">Flags</th></tr></thead><tbody>
+    ${ts.map(s=>{const f=[];
+      if(!s.n)f.push(`<span class="flag st-inc">No scores yet</span>`);
+      else{if(s.passRate<50)f.push(`<span class="flag st-fail">Hard: only ${s.passN} of ${s.n} passed</span>`);else if(s.passRate>=90)f.push(`<span class="flag st-pass">Most passed</span>`)}
+      if(s.t.given&&s.blanks)f.push(`<span class="flag st-rem">${s.blanks} missing</span>`);
+      if(s.bad)f.push(`<span class="flag st-fail">${s.bad} invalid</span>`);
+      return`<tr><td class="l"><b>${esc(taskLabel(c,s.t))}</b><div class="sm">${esc(s.t.weight)}% · /${esc(s.t.total)}${s.t.given?" · Given":""}</div></td><td>${esc(iloCode(c,s.t.iloId))}</td>
+        <td class="num">${s.n}</td><td class="num">${s.n?`${fmt(s.avg)} (${fmt(s.avg/s.T*100,1)}%)`:"–"}</td><td class="num">${s.n?s.hi:"–"}</td><td class="num">${s.n?s.lo:"–"}</td>
+        <td class="num">${s.n?`${s.passN}/${s.n} (${fmt(s.passRate,1)}%)`:"–"}</td><td class="l" style="white-space:normal;min-width:150px">${f.join("")}</td></tr>`}).join("")}
+    </tbody></table></div></div>
+  <div class="card"><h2>Students needing attention</h2>
+    <div class="two">${groups.map(([k,list])=>`<div><p class="hint" style="margin-bottom:4px"><b>${k}</b> (${list.length})</p>${list.length?`<ol class="plist">${list.map(({x,d})=>`<li>${esc(x.st.name||"(no name)")} <span class="sm">${esc(d[2])}</span></li>`).join("")}</ol>`:`<p class="sm">None</p>`}</div>`).join("")}</div></div>
+  <div class="card"><h2>Data checks</h2>${checks.length?`<ul class="plist">${checks.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:`<p class="hint">No problems found in this section's records.</p>`}</div>`;
+  bindSectionBar(c);
+}
+
+/* ---------- summary ---------- */
+function renderSummary(c){
+  const sec=curSection(c),tc=$("#tabc");
+  if(!sec){tc.innerHTML=`<div class="empty"><p>Add a section first.</p></div>`;return}
+  const res=sec.students.map(st=>({st,r:calc(c,st)}));
+  const count=k=>res.filter(x=>x.r.status[0]===k).length;
+  const done=res.filter(x=>x.r.complete);
+  const dist=SCALE.map(([lo,g])=>[g,done.filter(x=>x.r.eq===g).length]);const mx=Math.max(1,...dist.map(d=>d[1]));
+  const cannot=res.filter(x=>!x.r.complete&&!x.r.bad&&x.r.hi<75);
+  const narrow=res.filter(x=>!x.r.complete&&!x.r.bad&&x.r.hi>=75&&x.r.hi<80);
+  const nm=x=>`${esc(x.st.name||"(no name)")} <span class="sm">${esc(x.st.sr)}</span>`;
+  tc.innerHTML=`${sectionBar(c,sec)}
+  <div class="tiles">
+    <div class="tile"><span>Students</span><b>${res.length}</b></div>
+    <div class="tile"><span>Passed</span><b class="ok">${count("Passed")}</b></div>
+    <div class="tile"><span>REM</span><b style="color:var(--warn)">${count("REM")}</b></div>
+    <div class="tile"><span>Failed</span><b class="no">${count("Failed")}</b></div>
+    <div class="tile"><span>INC</span><b>${count("INC")}</b></div>
+    <div class="tile"><span>Cannot pass</span><b class="no">${cannot.length}</b></div>
+  </div>
+  <div class="two">
+    <div class="card"><h2>Grade distribution</h2><p class="hint">Students with complete scores only (${done.length} of ${res.length}).</p>
+      <div class="dist">${dist.map(([g,n])=>`<div class="dr"><span>${g}</span><div class="track"><div class="fill" style="width:${n/mx*100}%"></div></div><span>${n}</span></div>`).join("")}</div></div>
+    <div class="card"><h2>Students at risk</h2>
+      <p class="hint"><b>Cannot pass</b>: below 75 even with perfect scores on the remaining tasks.</p>
+      ${cannot.length?`<ol class="plist">${cannot.map(x=>`<li>${nm(x)} · highest ${x.r.hi}% (${equiv(x.r.hi)})</li>`).join("")}</ol>`:`<p class="sm">None</p>`}
+      <p class="hint"><b>Narrow path</b>: can still pass, but the highest possible is below 80.</p>
+      ${narrow.length?`<ol class="plist">${narrow.map(x=>`<li>${nm(x)} · highest ${x.r.hi}%</li>`).join("")}</ol>`:`<p class="sm">None</p>`}
+    </div>
+  </div>
+  <div class="tools"><button id="csv2">Export class record CSV</button></div>`;
+  bindSectionBar(c);
+  $("#csv2").onclick=()=>exportCSV(c,sec);
+}
+
+/* ---------- setup ---------- */
+function renderSetup(c){
+  const tc=$("#tabc");
+  const iloOpts=sel=>`<option value="">— None —</option>`+c.ilos.map(i=>`<option value="${i.id}" ${i.id===sel?"selected":""}>${esc(i.code||"ILO")}</option>`).join("");
+  tc.innerHTML=`
+  <div class="card"><h2>Course details</h2>
+    <div class="row2"><label class="f">Course code<input id="f-code" value="${esc(c.code)}" placeholder="e.g. CC101"></label>
+    <label class="f">Course description<input id="f-desc" value="${esc(c.desc)}" placeholder="e.g. Computer Programming"></label></div></div>
+
+  <div class="card setup"><h2>Intended learning outcomes</h2>
+    <p class="hint">Default attainment settings apply to every ILO. Type a value on an ILO's row to override it for that ILO only.</p>
+    <div class="inline"><label class="f">Default passing level<input id="f-dp" class="num" inputmode="decimal" value="${esc(c.defPass)}"></label>
+      <label class="f">Default target (% of students)<input id="f-dt" class="num" inputmode="decimal" value="${esc(c.defTarget)}"></label></div>
+    <div class="tw"><table><thead><tr><th class="l" style="width:110px">Code</th><th class="l">Description</th><th>Passing</th><th>Target %</th><th></th></tr></thead><tbody>
+    ${c.ilos.map(i=>`<tr data-ilo="${i.id}"><td><input data-k="code" value="${esc(i.code)}"></td><td style="min-width:240px"><input data-k="desc" value="${esc(i.desc)}" placeholder="What students should be able to do"></td>
+      <td class="w"><input data-k="pass" inputmode="decimal" value="${esc(i.pass)}" placeholder="${esc(c.defPass)}"></td><td class="w"><input data-k="target" inputmode="decimal" value="${esc(i.target)}" placeholder="${esc(c.defTarget)}"></td>
+      <td><button class="rm" data-rm title="Remove ILO">×</button></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="foot"><button id="addIlo">+ Add ILO</button></div></div>
+
+  <div class="card setup"><h2>Assessment tasks</h2>
+    <p class="hint">Each score is transmuted with (Score ÷ Total) × 62.5 + 37.5, multiplied by its weight, and cut off to a whole number for the final grade. Mark a task <b>Given</b> once it has been taken, so blank scores count as 0. While it is <b>Not yet given</b>, blank scores are left out and the student shows INC.</p>
+    <div class="tw"><table><thead><tr><th class="l">Task</th><th>ILO</th><th>Weight %</th><th>Total pts</th><th>Status</th><th></th></tr></thead><tbody>
+    ${c.tasks.map(t=>`<tr data-task="${t.id}"><td style="min-width:180px"><input data-k="name" value="${esc(t.name)}" placeholder="e.g. Prelim"></td>
+      <td style="min-width:110px"><select data-k="iloId">${iloOpts(t.iloId)}</select></td>
+      <td class="w"><input data-k="weight" inputmode="decimal" value="${esc(t.weight)}"></td><td class="w"><input data-k="total" inputmode="decimal" value="${esc(t.total)}"></td>
+      <td style="min-width:130px"><select data-k="given"><option value="0" ${t.given?"":"selected"}>Not yet given</option><option value="1" ${t.given?"selected":""}>Given</option></select></td>
+      <td><button class="rm" data-rm title="Remove task">×</button></td></tr>`).join("")||`<tr><td colspan="6" class="sm">No tasks yet.</td></tr>`}
+    </tbody></table></div>
+    <div class="foot"><button id="addTask">+ Add task</button><span class="wsum" id="wsum"></span></div></div>
+
+  <div class="card setup"><h2>Sections</h2><p class="hint">All sections share this course's ILOs and assessment tasks.</p>
+    <div class="tw"><table><thead><tr><th class="l">Section name</th><th>Students</th><th></th></tr></thead><tbody>
+    ${c.sections.map(s=>`<tr data-sec="${s.id}"><td><input data-k="name" value="${esc(s.name)}"></td><td class="num">${s.students.length}</td><td><button class="rm" data-rm title="Delete section">×</button></td></tr>`).join("")||`<tr><td colspan="3" class="sm">No sections yet.</td></tr>`}
+    </tbody></table></div>
+    <div class="foot"><button id="addSec">+ Add section</button></div></div>
+
+  <div class="card"><h2>Delete course</h2><p class="hint">Removes this course with all its sections, students and scores. This cannot be undone.</p>
+    <div><button id="delCourse">Delete ${esc(c.code||"this course")}</button></div></div>`;
+
+  const ws=()=>{const s=weightSum(c),el=$("#wsum");el.textContent=`Total weight: ${pc(s)}%`;el.classList.toggle("off",Math.abs(s-100)>1e-6)};ws();
+  const hdr=()=>{$("#hcode").textContent=c.code||"Untitled course";$("#hdesc").textContent=c.desc||"Add the course description in Course setup.";
+    const b=app.querySelector(`.citem[data-cid="${c.id}"]`);if(b){b.querySelector("b").textContent=c.code||"Untitled course";b.querySelector("span").textContent=c.desc}
+    const o=app.querySelector(`#csel option[value="${c.id}"]`);if(o)o.textContent=(c.code||"Untitled course")+(c.desc?" – "+c.desc:"")};
+  $("#f-code").oninput=e=>{c.code=e.target.value;dirty(c);hdr()};
+  $("#f-desc").oninput=e=>{c.desc=e.target.value;dirty(c);hdr()};
+  $("#f-dp").oninput=e=>{c.defPass=e.target.value;dirty(c);tc.querySelectorAll('[data-k="pass"]').forEach(i=>i.placeholder=e.target.value)};
+  $("#f-dt").oninput=e=>{c.defTarget=e.target.value;dirty(c);tc.querySelectorAll('[data-k="target"]').forEach(i=>i.placeholder=e.target.value)};
+  tc.querySelectorAll("tr[data-ilo]").forEach(tr=>{const i=c.ilos.find(x=>x.id===tr.dataset.ilo);
+    tr.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>{i[inp.dataset.k]=inp.value;dirty(c);if(inp.dataset.k==="code")tc.querySelectorAll(`select[data-k="iloId"] option[value="${i.id}"]`).forEach(o=>o.textContent=inp.value||"ILO")});
+    const rm=tr.querySelector("[data-rm]");rm.onclick=()=>arm(rm,()=>{c.ilos=c.ilos.filter(x=>x.id!==i.id);c.tasks.forEach(t=>{if(t.iloId===i.id)t.iloId=""});dirty(c);renderMain()},"Remove")});
+  tc.querySelectorAll("tr[data-task]").forEach(tr=>{const t=c.tasks.find(x=>x.id===tr.dataset.task);
+    tr.querySelectorAll("[data-k]").forEach(inp=>{const ev=inp.tagName==="SELECT"?"onchange":"oninput";inp[ev]=()=>{t[inp.dataset.k]=inp.dataset.k==="given"?inp.value==="1":inp.value;dirty(c);ws()}});
+    const rm=tr.querySelector("[data-rm]");rm.onclick=()=>arm(rm,()=>{c.tasks=c.tasks.filter(x=>x.id!==t.id);c.sections.forEach(s=>s.students.forEach(st=>{if(st.scores)delete st.scores[t.id]}));dirty(c);renderMain()},"Remove")});
+  tc.querySelectorAll("tr[data-sec]").forEach(tr=>{const s=c.sections.find(x=>x.id===tr.dataset.sec);
+    tr.querySelector("[data-k]").oninput=e=>{s.name=e.target.value;dirty(c)};
+    const rm=tr.querySelector("[data-rm]");rm.onclick=()=>arm(rm,()=>{c.sections=c.sections.filter(x=>x.id!==s.id);dirty(c);renderMain()},s.students.length?`Delete ${s.students.length} students?`:"Delete")});
+  $("#addIlo").onclick=()=>{c.ilos.push({id:uid(),code:`ILO${c.ilos.length+1}`,desc:"",pass:"",target:""});dirty(c);renderMain()};
+  $("#addTask").onclick=()=>{c.tasks.push({id:uid(),name:"",iloId:c.ilos[0]?.id||"",weight:"",total:"",given:false});dirty(c);renderMain();const r=tc.querySelectorAll("tr[data-task]");r[r.length-1]?.querySelector("input")?.focus()};
+  $("#addSec").onclick=()=>{c.sections.push({id:uid(),name:`Section ${c.sections.length+1}`,students:[]});dirty(c);renderMain()};
+  const del=$("#delCourse");del.onclick=()=>arm(del,async()=>{
+    const id=c.id;courses=courses.filter(x=>x.id!==id);pending.delete(id);view.courseId=courses[0]?.id||null;view.tab="record";view.sectionId=null;saveView();render();
+    try{await store.remove(id);toast("Course deleted.")}catch(e){toast("Could not delete. Check your connection.")}
+  },"Tap again to delete the course");
+}
+
+boot();
+</script>
+</body>
+</html>
